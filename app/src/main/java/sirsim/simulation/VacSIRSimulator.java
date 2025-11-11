@@ -13,12 +13,14 @@ public final class VacSIRSimulator {
     private final int gamma;      // recovery delay in steps
     private final int tMax;       // total steps
     private final double vacMax;  // max fraction vaccinated
+    private final int r; // number of neighbors to vaccinate
     private final SplittableRandom rng;
 
     private final Status[] status;
     private final int[] infStep;  // steps since infected (only valid for I)
 
-    public VacSIRSimulator(Graph g, double omega, double beta, double gamma, double tMax, double vacMax, long seed) {
+    public VacSIRSimulator(Graph g, double omega, double beta, double gamma, double tMax, double vacMax, int r, long seed) {
+        if (r > 2) throw new IllegalArgumentException("r must be less than or equal to 2");
         if (g == null) throw new IllegalArgumentException("Graph is null");
         if (omega < 0 || omega > 1 || beta < 0 || beta > 1) throw new IllegalArgumentException("omega and beta must be probabilities in [0,1]");
         if (gamma < 0) throw new IllegalArgumentException("gamma must be non-negative");
@@ -30,6 +32,7 @@ public final class VacSIRSimulator {
         this.gamma = (int)Math.round(gamma);
         this.tMax = (int)Math.round(tMax);
         this.vacMax = vacMax;
+        this.r = r;
         this.rng = new SplittableRandom(seed);
 
         int n = g.n;
@@ -99,6 +102,23 @@ public final class VacSIRSimulator {
                                 curVaccinatedNum++;
                             } else if (rng.nextDouble() < beta) {
                                 toInfect[v] = true;
+                            }
+                        }
+                    }
+
+                    if (r == 2) {
+                        ArrayList<Integer> neighbors2 = new ArrayList<>();
+                        for (int v : neighbors) {
+                            for (int w : g.neighbors(v)) {
+                                if (status[w] == Status.S && !toVaccinate[w] && !toInfect[w]) {
+                                    neighbors2.add(w);
+                                }
+                            }
+                        }
+                        for (int w : neighbors2) {
+                            if (rng.nextDouble() < omega && curVaccinatedNum <= maxVaccinations) {
+                                toVaccinate[w] = true;
+                                curVaccinatedNum++;
                             }
                         }
                     }
@@ -175,7 +195,7 @@ public final class VacSIRSimulator {
         S[idx] = s; I[idx] = i; V[idx] = v; R[idx] = r;
     }
 
-    public static VacSirResult simulate(Graph g, double omega, double beta, double gamma, int tMax, double vacMax, int[] initialInfecteds, long seed) {
-        return new VacSIRSimulator(g, omega, beta, gamma, tMax, vacMax, seed).run(initialInfecteds);
+    public static VacSirResult simulate(Graph g, double omega, double beta, double gamma, int tMax, double vacMax, int[] initialInfecteds, int r, long seed) {
+        return new VacSIRSimulator(g, omega, beta, gamma, tMax, vacMax, r, seed).run(initialInfecteds);
     }
 }

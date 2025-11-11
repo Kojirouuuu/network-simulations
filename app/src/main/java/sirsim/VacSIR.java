@@ -11,7 +11,7 @@ import java.util.SplittableRandom;
 public class VacSIR {
     public static void main(String[] args) throws Exception {
         // 例: 無向ERネットワーク（CSR）
-        int N = 10_000;
+        int N = 1_000_000;
         int kAve = 10;
         Graph g = ER.generateERFromKAve(N, kAve, 42L);
 
@@ -21,6 +21,7 @@ public class VacSIR {
         // 初期感染者（ランダムに1人）
         int k0 = 1;
 
+        int r = 1; // 感染者の何人先までワクチンするか
         double omega = 0.45;
         double beta = 0.168;        // degree exponent for transmission rate
         int gamma = 3;       // recovery rate
@@ -29,7 +30,7 @@ public class VacSIR {
 
 
         // CSV 出力先（既存ファイルがあればインデックスを付与して新規作成）
-        var tsPath = sirsim.utils.PathsEx.resolveIndexed(Paths.get(String.format("out/vacsir/%d/timeseries.csv", N)));
+        var tsPath = sirsim.utils.PathsEx.resolveIndexed(Paths.get(String.format("out/vacsir/r=%d/omega=%.4f/N=%d/timeseries.csv", r, omega, N)));
 
         // 進捗表示用カウント
 
@@ -41,7 +42,7 @@ public class VacSIR {
             int[] init = sampleUnique(new SplittableRandom(7L + itr), g.n, k0);
             long simSeed = 12345L + itr;
 
-            VacSirResult res = VacSIRSimulator.simulate(g, omega, beta, gamma, tMax, vacMax, init, simSeed);
+            VacSirResult res = VacSIRSimulator.simulate(g, omega, beta, gamma, tMax, vacMax, init, r, simSeed);
 
             // CSV 出力（パラメータ含む：itr,alpha,beta,lambda,time,I,R）
             res.writeTimeSeriesCsv(tsPath, itr, true);
