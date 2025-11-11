@@ -11,18 +11,18 @@ import java.util.SplittableRandom;
 public class VacSIR {
     public static void main(String[] args) throws Exception {
         // 例: 無向ERネットワーク（CSR）
-        int N = 5_000;
+        int N = 1_000_000;
         int kAve = 10;
         Graph g = ER.generateERFromKAve(N, kAve, 42L);
 
         // 繰り返し回数（引数指定なければ1回）
-        int iters = 100;
+        int iters = 40;
 
         // 初期感染者（ランダムに1人）
         int k0 = 1;
 
-        int r = 2; // 感染者の何人先までワクチンするか
-        double omega = 0.2;
+        int r = 1; // 感染者の何人先までワクチンするか
+        double omega = 0.45;
         double beta = 0.168;        // degree exponent for transmission rate
         int gamma = 3;       // recovery rate
         int tMax = 120;      // 打ち切り時刻
