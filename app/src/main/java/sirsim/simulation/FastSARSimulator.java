@@ -73,6 +73,10 @@ public final class FastSARSimulator {
 
     public SarResult run(int[] initialInfecteds) {
         final int n = g.n;
+        Scount = n;
+        Acount = 0;
+        Rcount = 0;
+        
         for (int u = 0; u < n; u++){
             status[u] = Status.S;
             predInfTime[u] = Double.POSITIVE_INFINITY;
