@@ -2,6 +2,7 @@ package sirsim;
 
 import sirsim.network.Graph;
 import sirsim.network.topology.ER;
+import sirsim.network.topology.Config;
 import sirsim.simulation.FastSARSimulator;
 import sirsim.simulation.SarResult;
 import sirsim.utils.Array;
@@ -25,16 +26,17 @@ public class FastSAR {
     public static void main(String[] args) throws Exception {
         // 例: 無向ERネットワーク（CSR）
         int N = 100_000;
-        int kAve = 25;
+        // int kAve = 10;
+        double powerLawGamma = 2.3;
         // double p = (double)kAve / (N - 1);
 
         // 書き出し設定
         boolean isFinal = true;
-        int batchSize = 12;
+        int batchSize = 100;
         int iters = 10;
 
-        // 初期感染者（ランダムに1人）
-        int k0 = 1;
+        // 初期感染者（ランダムにk0人）
+        int k0 = 10_000;
 
         double gamma = 1.0;       // recovery rate
         double tMax = 200.0;      // 打ち切り時刻
@@ -45,7 +47,11 @@ public class FastSAR {
         double lambdaStep = 0.01;
         double[] lambdaList = Array.arange(lambdaMin, lambdaMax, lambdaStep);
 
-        double[] alphaList = { -2.0, -1.0, 0.0, 1.0 };
+        double alphaMin = -1.0;
+        double alphaMax = 1.0;
+        double alphaStep = 0.01;
+
+        double[] alphaList = Array.arange(alphaMin, alphaMax, alphaStep);
 
         int threshold = 1;
         int[] thresholdList = new int[N];
@@ -66,7 +72,8 @@ public class FastSAR {
         
         try (ForkJoinPool pool = new ForkJoinPool(parallelism)) {
             Future<?> future = pool.submit(() -> IntStream.range(0, batchSize).parallel().forEach(batchIndex -> {
-                Graph g = ER.generateERFromKAve(N, kAve, 42L + batchIndex);
+                // Graph g = ER.generateERFromKAve(N, kAve, 42L + batchIndex);
+                Graph g = Config.generatePowerLawConfig(N, powerLawGamma, 42L + batchIndex);
                 String idx = String.format("%02d", batchIndex);
                 Path basePath = Paths.get(String.format("out/fastsar/%d", N));
                 Path resultsPath = sirsim.utils.PathsEx.resolveIndexed(basePath.resolve(String.format("results_%s.csv", idx)));
