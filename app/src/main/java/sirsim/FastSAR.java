@@ -25,9 +25,9 @@ public class FastSAR {
     
     public static void main(String[] args) throws Exception {
         // 例: 無向ERネットワーク（CSR）
-        int N = 100_000;
+        int N = 50_000;
         // int kAve = 10;
-        double powerLawGamma = 2.3;
+        double powerLawGamma = 2.4;
         // double p = (double)kAve / (N - 1);
 
         // 書き出し設定
@@ -36,7 +36,7 @@ public class FastSAR {
         int iters = 10;
 
         // 初期感染者（ランダムにk0人）
-        int k0 = 10_000;
+        int k0 = 5_000;
 
         double gamma = 1.0;       // recovery rate
         double tMax = 200.0;      // 打ち切り時刻
