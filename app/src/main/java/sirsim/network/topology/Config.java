@@ -14,7 +14,7 @@ public class Config {
      * @param seed  乱数シード
      * @return 生成されたGraphインスタンス
      */
-    public static Graph generatePowerLawConfig(int N, double gamma, long seed) {
+    public static Graph generatePowerLawConfig(int N, double gamma, int kMin, long seed) {
         if (N <= 0) throw new IllegalArgumentException("ノード数Nは正の整数である必要があります");
         if (gamma <= 0.0) throw new IllegalArgumentException("冪指数gammaは正である必要があります");
 
@@ -24,9 +24,9 @@ public class Config {
         int kMax = Math.max(1, N - 1);
         double[] cdf = new double[kMax + 1]; // 1-indexed: cdf[k]
         double z = 0.0;
-        for (int k = 1; k <= kMax; k++) z += Math.pow(k, -gamma);
+        for (int k = kMin; k <= kMax; k++) z += Math.pow(k, -gamma);
         double acc = 0.0;
-        for (int k = 1; k <= kMax; k++) {
+        for (int k = kMin; k <= kMax; k++) {
             acc += Math.pow(k, -gamma) / z;
             cdf[k] = acc;
         }
@@ -37,7 +37,7 @@ public class Config {
         for (int i = 0; i < N; i++) {
             double u = random.nextDouble();
             // 2分探索でkを取得
-            int lo = 1, hi = kMax, picked = 1;
+            int lo = kMin, hi = kMax, picked = kMin;
             while (lo <= hi) {
                 int mid = (lo + hi) >>> 1;
                 if (u <= cdf[mid]) { picked = mid; hi = mid - 1; }
@@ -51,16 +51,16 @@ public class Config {
         if ((sumDeg & 1L) == 1L) {
             int idx = 0;
             if (deg[idx] < kMax) deg[idx]++;
-            else if (deg[idx] > 1) deg[idx]--;
+            else if (deg[idx] > kMin) deg[idx]--;
             else {
                 // 探して調整
                 boolean adjusted = false;
-                for (int i = 1; i < N; i++) {
+                for (int i = 0; i < N; i++) {
                     if (deg[i] < kMax) { deg[i]++; adjusted = true; break; }
                 }
                 if (!adjusted) {
-                    for (int i = 1; i < N; i++) {
-                        if (deg[i] > 1) { deg[i]--; adjusted = true; break; }
+                    for (int i = 0; i < N; i++) {
+                        if (deg[i] > kMin) { deg[i]--; adjusted = true; break; }
                     }
                 }
                 if (!adjusted) throw new IllegalStateException("次数調整に失敗しました");
@@ -154,7 +154,7 @@ public class Config {
 
             if (okAttempt && e == m) {
                 // うまく全部のスタブを消費できた
-                return Graph.fromUndirectedEdgeList(N, s, d);
+                return Graph.fromUndirectedEdgeList("Config", N, s, d);
             }
             // 失敗したら次の attempt へ（度数列は同じだが、乱数の流れやバックトラックで構成が変わる）
         }
@@ -165,8 +165,8 @@ public class Config {
     }
 
     /** シード省略版 */
-    public static Graph generatePowerLawConfig(int N, double gamma) {
-        return generatePowerLawConfig(N, gamma, System.currentTimeMillis());
+    public static Graph generatePowerLawConfig(int N, double gamma, int kMin) {
+        return generatePowerLawConfig(N, gamma, kMin, System.currentTimeMillis());
     }
 
     /** 無向辺 (u, v) を一意に表すキー（u < v に正規化） */

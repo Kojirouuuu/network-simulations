@@ -37,7 +37,7 @@ public class ER {
             s[k] = src.get(k);
             d[k] = dst.get(k);
         }
-        return Graph.fromUndirectedEdgeList(N, s, d);
+        return Graph.fromUndirectedEdgeList("ER", N, s, d);
     }
     /**
      * シード省略版
@@ -73,7 +73,7 @@ public class ER {
             }
         }
 
-        return Graph.fromUndirectedEdgeList(N, s, d);
+        return Graph.fromUndirectedEdgeList("ER", N, s, d);
     }
 
     public static Graph generateERFromKAve(int N, double kAve) {
