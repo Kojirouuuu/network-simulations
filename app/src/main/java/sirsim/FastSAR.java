@@ -28,7 +28,8 @@ public class FastSAR {
         // 例: 無向ERネットワーク（CSR）
         int N = 10_000;
         int kAve = 10;
-        // double powerLawGamma = 2.4;
+        double powerLawGamma = 4.0;
+        int kMin = 5;
         // double p = (double)kAve / (N - 1);
 
         // 書き出し設定
@@ -74,10 +75,15 @@ public class FastSAR {
         try (ForkJoinPool pool = new ForkJoinPool(parallelism)) {
             Future<?> future = pool.submit(() -> IntStream.range(0, batchSize).parallel().forEach(batchIndex -> {
                 // Graph g = ER.generateERFromKAve(N, kAve, 42L + batchIndex);
-                Graph g = BA.generateBA(N, kAve/2, kAve/2, 42L + batchIndex);
-                // Graph g = Config.generatePowerLawConfig(N, powerLawGamma, 42L + batchIndex);
+                // Graph g = BA.generateBA(N, kAve/2, kAve/2, 42L + batchIndex);
+                Graph g = Config.generatePowerLawConfig(N, powerLawGamma, kMin, 42L + batchIndex);
                 String idx = String.format("%02d", batchIndex);
-                Path basePath = Paths.get(String.format("out/fastsar/er/threshold=%d/N=%d", threshold, N));
+
+                String networkPath = g.name;
+                if (networkPath == "Config") {
+                    networkPath = String.format("config/gamma=%.2f/kmin=%d", powerLawGamma, kMin);
+                }
+                Path basePath = Paths.get(String.format("out/fastsar/%s/threshold=%d/N=%d", networkPath, threshold, N));
                 Path resultsPath = sirsim.utils.PathsEx.resolveIndexed(basePath.resolve(String.format("results_%s.csv", idx)));
 
                 logger.info("Batch %d started", batchIndex);

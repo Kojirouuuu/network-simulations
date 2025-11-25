@@ -94,7 +94,7 @@ public class BA {
         }
 
 
-        return Graph.fromUndirectedEdgeList(N, s, d);
+        return Graph.fromUndirectedEdgeList("BA", N, s, d);
     }
 
     /**
