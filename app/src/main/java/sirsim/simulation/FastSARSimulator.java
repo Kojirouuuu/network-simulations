@@ -76,6 +76,8 @@ public final class FastSARSimulator {
         Scount = n;
         Acount = 0;
         Rcount = 0;
+
+        Arrays.fill(infectedCount, 0);
         
         for (int u = 0; u < n; u++){
             status[u] = Status.S;
@@ -107,9 +109,27 @@ public final class FastSARSimulator {
             if (u < 0 || u >= n) throw new IllegalArgumentException("invalid initial infected: " + u);
             if (seen[u]) continue;
             seen[u] = true;
-            predInfTime[u] = 0.0;
-            Q.add(new Event(0.0, u, EventType.TRANSMIT, seqGen.next()));
+            // 初期感染者はthresholdに達しているとみなす
+            infectedCount[u] = thresholdList[u];
+            // 初期感染者を直接感染者（A）に設定
+            Scount--; Acount++;
+            status[u] = Status.A;
+            tInfect[u] = 0.0;
+            
+            // 回復イベントをスケジュール
+            double tRec = exp(rng, gamma);
+            recTime[u] = tRec;
+            if (tRec < tMax) {
+                Q.add(new Event(tRec, u, EventType.RECOVER, seqGen.next()));
+            }
+            
+            // 隣接ノードへの感染伝播を開始
+            for (int e = g.firstArc(u); e < g.endArc(u); e++) {
+                int v = g.colIdx[e];
+                findTransmit(Q, 0.0, u, v, seqGen, alpha, beta);
+            }
         }
+        record(0.0);
 
         while (!Q.isEmpty()) {
             Event ev = Q.poll();
@@ -119,7 +139,7 @@ public final class FastSARSimulator {
             if (t >= tMax) break;
 
             if (ev.type == EventType.TRANSMIT) {
-                if (status[u] == Status.S && t == predInfTime[u]) {
+                if (status[u] == Status.S) {
                     processTransmit(u, t, Q, () -> seqGen.next());
                 }
             } else { // EventType.RECOVER
@@ -166,7 +186,10 @@ public final class FastSARSimulator {
         if (lambdaF == 0.0) return;
 
         double tInf = t + exp(rng, lambdaF);
-        double bound = Math.min(recTime[source], Math.min(predInfTime[target], tMax));
+
+        // predInfTime[target]は最初の感染、次点以降の感染でもthreshold=1であればStatus=Sで無視イベントとなる
+        // double bound = Math.min(recTime[source], Math.min(predInfTime[target], tMax));
+        double bound = Math.min(recTime[source], tMax);
         if (tInf < bound) {
             predInfTime[target] = tInf;
             Q.add(new Event(tInf, target, EventType.TRANSMIT, seqGen.next()));

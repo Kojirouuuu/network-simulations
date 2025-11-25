@@ -2,6 +2,7 @@ package sirsim;
 
 import sirsim.network.Graph;
 import sirsim.network.topology.ER;
+import sirsim.network.topology.BA;
 import sirsim.network.topology.Config;
 import sirsim.simulation.FastSARSimulator;
 import sirsim.simulation.SarResult;
@@ -25,18 +26,18 @@ public class FastSAR {
     
     public static void main(String[] args) throws Exception {
         // 例: 無向ERネットワーク（CSR）
-        int N = 50_000;
-        // int kAve = 10;
-        double powerLawGamma = 2.4;
+        int N = 10_000;
+        int kAve = 10;
+        // double powerLawGamma = 2.4;
         // double p = (double)kAve / (N - 1);
 
         // 書き出し設定
         boolean isFinal = true;
-        int batchSize = 100;
-        int iters = 10;
+        int batchSize = 10;
+        int iters = 1;
 
         // 初期感染者（ランダムにk0人）
-        int k0 = 5_000;
+        int k0 = 1_000;
 
         double gamma = 1.0;       // recovery rate
         double tMax = 200.0;      // 打ち切り時刻
@@ -53,7 +54,7 @@ public class FastSAR {
 
         double[] alphaList = Array.arange(alphaMin, alphaMax, alphaStep);
 
-        int threshold = 1;
+        int threshold = 3;
         int[] thresholdList = new int[N];
         Arrays.fill(thresholdList, threshold);
 
@@ -73,9 +74,10 @@ public class FastSAR {
         try (ForkJoinPool pool = new ForkJoinPool(parallelism)) {
             Future<?> future = pool.submit(() -> IntStream.range(0, batchSize).parallel().forEach(batchIndex -> {
                 // Graph g = ER.generateERFromKAve(N, kAve, 42L + batchIndex);
-                Graph g = Config.generatePowerLawConfig(N, powerLawGamma, 42L + batchIndex);
+                Graph g = BA.generateBA(N, kAve/2, kAve/2, 42L + batchIndex);
+                // Graph g = Config.generatePowerLawConfig(N, powerLawGamma, 42L + batchIndex);
                 String idx = String.format("%02d", batchIndex);
-                Path basePath = Paths.get(String.format("out/fastsar/%d", N));
+                Path basePath = Paths.get(String.format("out/fastsar/er/threshold=%d/N=%d", threshold, N));
                 Path resultsPath = sirsim.utils.PathsEx.resolveIndexed(basePath.resolve(String.format("results_%s.csv", idx)));
 
                 logger.info("Batch %d started", batchIndex);
