@@ -1,5 +1,9 @@
 package sirsim.network;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 public class Graph {
@@ -60,5 +64,32 @@ public class Graph {
             neighbors[e - firstArc(u)] = colIdx[e];
         }
         return neighbors;
+    }
+
+    /**
+     * エッジリストをファイルに書き出します。
+     * Pythonのnetworkxで読み込める形式（スペース区切りの2列）で出力します。
+     * 
+     * @param path 出力先のファイルパス
+     * @throws IOException ファイル書き込みエラー
+     */
+    public void writeEdgelist(Path path) throws IOException {
+        // 親ディレクトリが存在しない場合は作成
+        Path parent = path.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        
+        try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(path))) {
+            // 無向グラフなので、u < vの条件で各エッジを1回だけ書き出す
+            for (int u = 0; u < n; u++) {
+                for (int e = firstArc(u); e < endArc(u); e++) {
+                    int v = colIdx[e];
+                    if (u < v) {  // 重複を避けるため、u < vの条件で書き出す
+                        writer.printf("%d %d%n", u, v);
+                    }
+                }
+            }
+        }
     }
 }

@@ -37,6 +37,14 @@ application {
     mainClass = 'sirsim.App'
 }
 
+// FastSAR実行用タスク
+task runFastSAR(type: JavaExec) {
+    group = 'application'
+    description = 'Runs FastSAR simulation'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'sirsim.FastSAR'
+}
+
 tasks.named('test') {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
