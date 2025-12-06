@@ -54,23 +54,28 @@ public class RR {
         for (int attempt = 0; attempt < maxTries; attempt++) {
             // 毎回もとの配列をコピーしてシャッフル
             int[] stubs = baseStubs.clone();
-            Array.shuffle(stubs, random.nextLong());
+            stubs = Array.shuffle(stubs, random.nextLong());
 
             int[] startIndices = new int[M];
             int[] destIndices  = new int[M];
 
-            boolean ok = true;
             Set<Long> usedEdges = new HashSet<>();
 
             int e = 0;
-            for (int i = 0; i < stubCount; i += 2) {
+            int i = 0;
+            while (i < stubCount) {
                 int u = stubs[i];
                 int v = stubs[i + 1];
 
                 // 自己ループはNG
                 if (u == v) {
-                    ok = false;
-                    break;
+                    int[] rest = new int[stubCount - i];
+                    System.arraycopy(stubs, i, rest, 0, rest.length);
+                    rest = Array.shuffle(rest, random.nextLong());
+                    for (int j = 0; j < rest.length; j++) {
+                        stubs[i + j] = rest[j];
+                    }
+                    continue;
                 }
 
                 // 無向辺 (min,max) をキーにして多重辺を検出
@@ -79,16 +84,23 @@ public class RR {
                 long key = (((long) a) << 32) | (b & 0xffffffffL);
 
                 if (!usedEdges.add(key)) {
-                    ok = false;
-                    break;
+                    int[] rest = new int[stubCount - i];
+                    System.arraycopy(stubs, i, rest, 0, rest.length);
+                    rest = Array.shuffle(rest, random.nextLong());
+                    for (int j = 0; j < rest.length; j++) {
+                        stubs[i + j] = rest[j];
+                    }
+                    continue;
                 }
 
                 startIndices[e] = u;
                 destIndices[e]  = v;
                 e++;
+
+                i += 2;
             }
 
-            if (ok && e == M) {
+            if (e == M) {
                 // 条件を満たしたら Graph を生成して返す
                 return Graph.fromUndirectedEdgeList("RR", N, startIndices, destIndices);
             }

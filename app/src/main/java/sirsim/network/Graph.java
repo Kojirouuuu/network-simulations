@@ -68,6 +68,40 @@ public class Graph {
         return neighbors;
     }
 
+    public double averageDegree() {
+        return (double) m2 / n;
+    }
+
+    public int maxDegree() {
+        int maxDeg = 0;
+        for (int u = 0; u < n; u++) {
+            int deg = degree(u);
+            if (deg > maxDeg) {
+                maxDeg = deg;
+            }
+        }
+        return maxDeg;
+    }
+
+    public int minDegree() {
+        int minDeg = Integer.MAX_VALUE;
+        for (int u = 0; u < n; u++) {
+            int deg = degree(u);
+            if (deg < minDeg) {
+                minDeg = deg;
+            }
+        }
+        return minDeg;
+    }
+
+    public void printInfo() {
+        System.out.printf("Graph: %s%n", name);
+        System.out.printf("  Nodes: %d%n", n);
+        System.out.printf("  Edges: %d%n", m2 / 2);
+        System.out.printf("  Avg. degree: %.4f%n", averageDegree());
+        System.out.printf("  Min. degree: %d%n", minDegree());
+        System.out.printf("  Max. degree: %d%n", maxDegree());
+    }
     /**
      * エッジリストをファイルに書き出します。
      * Pythonのnetworkxで読み込める形式（スペース区切りの2列）で出力します。
