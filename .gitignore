@@ -9,3 +9,5 @@ test-notebooks
 
 # simulation results
 out/
+
+app/src/main/java/sirsim/network/files/*
