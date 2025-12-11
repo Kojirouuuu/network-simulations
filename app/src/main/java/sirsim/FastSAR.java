@@ -1,6 +1,7 @@
 package sirsim;
 
 import sirsim.network.Graph;
+import sirsim.network.topology.RR;
 import sirsim.network.topology.ER;
 import sirsim.network.topology.BA;
 import sirsim.network.topology.Config;
@@ -38,10 +39,6 @@ public class FastSAR {
         // シミュレーション設定
         SimulationConfig config = new SimulationConfig();
         
-        // パラメータ設定
-        int[] thresholdList = new int[config.N];
-        Arrays.fill(thresholdList, config.threshold);
-        
         // タスク数計算
         final int lambdaCount = config.lambdaList.length;
         final int alphaCount = config.alphaList.length;
@@ -64,7 +61,7 @@ public class FastSAR {
         try (ForkJoinPool pool = new ForkJoinPool(parallelism)) {
             Future<?> future = pool.submit(() -> 
                 IntStream.range(0, config.batchSize).parallel().forEach(batchIndex -> 
-                    processBatch(batchIndex, config, thresholdList, 
+                    processBatch(batchIndex, config, 
                                 progressItr, done, totalTasks)
                 )
             );
@@ -122,12 +119,16 @@ public class FastSAR {
     /**
      * 1つのバッチを処理
      */
-    private static void processBatch(int batchIndex, SimulationConfig config, int[] thresholdList,
+    private static void processBatch(int batchIndex, SimulationConfig config,
                                     int[] progressItr, AtomicLong done, long totalTasks) {
         // グラフ生成
-        Graph g = ER.generateERFromKAve(config.N, config.kAve, GRAPH_BASE_SEED + batchIndex);
-        // Graph g = BA.generateBA(config.N, config.kAve / 2, config.kAve / 2, GRAPH_BASE_SEED + batchIndex);
-        // Graph g = Config.generatePowerLawConfig(config.N, config.powerLawGamma, config.kMin, GRAPH_BASE_SEED + batchIndex);
+        Graph g = switch (config.networkType) {
+            case "RR" -> RR.generateRR(config.N, config.kAve, GRAPH_BASE_SEED + batchIndex);
+            case "ER" -> ER.generateERFromKAve(config.N, config.kAve, GRAPH_BASE_SEED + batchIndex);
+            case "BA" -> BA.generateBA(config.N, config.kAve / 2, config.kAve / 2, GRAPH_BASE_SEED + batchIndex);
+            case "Config" -> Config.generatePowerLawConfig(config.N, config.powerLawGamma, config.kMin, GRAPH_BASE_SEED + batchIndex);
+            default -> throw new IllegalArgumentException("Unknown network type: " + config.networkType);
+        };
         
         // 出力パスの準備
         Path resultsPath = prepareOutputPath(g, batchIndex, config);
@@ -144,6 +145,16 @@ public class FastSAR {
                 
                 for (int li = 0; li < lambdaCount; li++) {
                     double lambda = config.lambdaList[li];
+
+                    // パラメータ設定
+                    int[] thresholdList = new int[config.N];
+                    Arrays.fill(thresholdList, config.threshold);
+                    int numActivist = (int) (config.N * config.p);
+                    for (int i = 0; i < numActivist; i++) {
+                        thresholdList[i] = 1;
+                    }
+                    thresholdList = Array.shuffle(thresholdList, 
+                        RNG_BASE_SEED + (long) batchIndex * 1_000 + itr);
                     
                     // シミュレーション実行
                     runSimulation(g, config, lambda, alpha, thresholdList, 
@@ -171,8 +182,8 @@ public class FastSAR {
                                        config.powerLawGamma, config.kMin);
         }
         
-        Path basePath = Paths.get(String.format("out/fastsar/%s/threshold=%d/N=%d", 
-                                                networkPath, config.threshold, config.N));
+        Path basePath = Paths.get(String.format("out/fastsar/%s/threshold=%d/p=%.2f/N=%d", 
+                                                networkPath, config.threshold, config.p, config.N));
         return sirsim.utils.PathsEx.resolveIndexed(
             basePath.resolve(String.format("results_%s.csv", idx))
         );
@@ -226,23 +237,25 @@ public class FastSAR {
      * シミュレーション設定を保持する内部クラス
      */
     private static class SimulationConfig {
-        final int N = 5_000;
+        final String networkType = "Config"; // "ER", "BA", "Config", "RR"
+        final int N = 100_000;
         final int kAve = 10;
-        final double powerLawGamma = 4.0;
+        final double powerLawGamma = 3.6;
         final int kMin = 5;
         final boolean isFinal = true;
         final int batchSize = 20;
-        final int itrs = 20;
-        final int k0 = 2_000;
+        final int itrs = 40;
+        final int k0 = 1;
         final double gamma = 1.0;
         final double tMax = 200.0;
         final double beta = 0.0;
         final double lambdaMin = 0.0;
-        final double lambdaMax = 10.0;
-        final double lambdaStep = 0.5;
+        final double lambdaMax = 3.0;
+        final double lambdaStep = 0.1;
         final double[] lambdaList = Array.arange(lambdaMin, lambdaMax, lambdaStep);
-        final double[] alphaList = { -1.0, -0.75, -0.5, 0.0 };
+        final double[] alphaList = { -0.75, -0.5, 0.0, 0.5, 0.75 };
         final int threshold = 3;
+        final double p = 0.3;
     }
 
     private static int[] sampleUnique(SplittableRandom rng, int n, int k) {
