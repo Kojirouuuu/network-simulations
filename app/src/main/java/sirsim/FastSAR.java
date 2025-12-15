@@ -238,24 +238,24 @@ public class FastSAR {
      */
     private static class SimulationConfig {
         final String networkType = "Config"; // "ER", "BA", "Config", "RR"
-        final int N = 100_000;
+        final int N = 50_000;
         final int kAve = 10;
-        final double powerLawGamma = 3.6;
+        final double powerLawGamma = 2.3;
         final int kMin = 5;
         final boolean isFinal = true;
-        final int batchSize = 20;
-        final int itrs = 40;
+        final int batchSize = 16;
+        final int itrs = 50;
         final int k0 = 1;
         final double gamma = 1.0;
         final double tMax = 200.0;
         final double beta = 0.0;
         final double lambdaMin = 0.0;
         final double lambdaMax = 3.0;
-        final double lambdaStep = 0.1;
+        final double lambdaStep = 0.01;
         final double[] lambdaList = Array.arange(lambdaMin, lambdaMax, lambdaStep);
-        final double[] alphaList = { -0.75, -0.5, 0.0, 0.5, 0.75 };
-        final int threshold = 3;
-        final double p = 0.3;
+        final double[] alphaList = { -2.5, -2.0, -1.0, -0.5, 0.0 };
+        final int threshold = 1;
+        final double p = 0.0; // fraction of activists
     }
 
     private static int[] sampleUnique(SplittableRandom rng, int n, int k) {

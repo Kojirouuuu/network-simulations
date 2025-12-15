@@ -1,4 +1,96 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "java.compile.nullAnalysis.mode": "automatic"
+  // 参考サイト
+  // https://qiita.com/rainbartown/items/d7718f12d71e688f3573
+  // ---------- Language ----------
+  "[tex]": {
+    // スニペット補完中にも補完を使えるようにする
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    // インデント幅を2にする
+    "editor.tabSize": 2
+  },
+  "[latex]": {
+    // スニペット補完中にも補完を使えるようにする
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    // インデント幅を2にする
+    "editor.tabSize": 2
+  },
+  "[bibtex]": {
+    // インデント幅を2にする
+    "editor.tabSize": 2
+  },
+
+  // ---------- LaTeX Workshop ----------
+  // 使用パッケージのコマンドや環境の補完を有効にする
+  "latex-workshop.intellisense.package.enabled": true,
+
+  // 生成ファイルを削除するときに対象とするファイル
+  // デフォルト値に "*.synctex.gz" を追加
+  "latex-workshop.latex.clean.fileTypes": [
+    "*.aux",
+    "*.bbl",
+    "*.blg",
+    "*.idx",
+    "*.ind",
+    "*.lof",
+    "*.lot",
+    "*.out",
+    "*.toc",
+    "*.acn",
+    "*.acr",
+    "*.alg",
+    "*.glg",
+    "*.glo",
+    "*.gls",
+    "*.ist",
+    "*.fls",
+    "*.log",
+    "*.fdb_latexmk",
+    "*.snm",
+    "*.nav",
+    "*.dvi",
+    "*.synctex.gz"
+  ],
+
+  // 生成ファイルを "out" ディレクトリに吐き出す
+  "latex-workshop.latex.outDir": "out",
+
+  // ビルドのレシピ
+  "latex-workshop.latex.recipes": [
+    {
+      "name": "latexmk-uplatex",
+      "tools": [
+        "latexmk-uplatex"
+      ]
+    }
+  ],
+
+  // ビルドのレシピに使われるパーツ
+  "latex-workshop.latex.tools": [
+    {
+      "name": "latexmk-uplatex",
+      "command": "/Library/TeX/texbin/latexmk",
+      "args": [
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-pdfdvi",
+        "-e",
+        "$latex=q/uplatex %O -synctex=1 -interaction=nonstopmode -file-line-error %S/",
+        "-e",
+        "$dvipdf=q/dvipdfmx %O -o %D %S/",
+        "-e",
+        "$biber=q/biber %O %S/",
+        "-e",
+        "$bibtex_use=2",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ],
+      "env": {
+        "PATH": "/Library/TeX/texbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin",
+        "BIBINPUTS": "%DIR%:"
+      }
+    }
+  ],
+
+  "java.compile.nullAnalysis.mode": "automatic"
 }
