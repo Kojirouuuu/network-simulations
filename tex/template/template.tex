@@ -1,0 +1,116 @@
+% !TeX program = uplatex
+% !TeX encoding = UTF-8
+
+\documentclass[uplatex,dvipdfmx,11pt]{bxjsarticle}
+
+% ====== ページ設定（bxjsarticle既定。警告回避のため余白は必要時のみ設定） ======
+% 余白を変更したい場合は次の行を有効化してください。
+% \setpagelayout{margin=25mm}
+
+% ====== 数式・記号 ======
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{bm}
+
+% ====== 図表 ======
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{siunitx}
+
+% ====== 参照・リンク ======
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+% ====== 箇条書き等 ======
+\usepackage{enumitem}
+
+% ====== 文献（biblatex + biber） ======
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+% 本テンプレートは tex/ 配下にあるため、tex/ 直下の references.bib を参照
+\addbibresource{../references.bib}
+
+% ====== 自作コマンド（必要に応じて拡張） ======
+\newcommand{\SF}{\textsf{SF}}
+\newcommand{\ER}{\textsf{ER}}
+\newcommand{\RR}{\textsf{RR}}
+
+\title{（タイトル）スケールフリー上の次数依存SAR解析テンプレート}
+\author{（氏名・所属）}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+概要を1段落で。目的・方法・主な所見を簡潔に記述します。
+\end{abstract}
+
+\section{背景と目的}
+関連研究や位置付けを簡潔に。例えば次数依存パーコレーションの条件\cite{BaxterTimar2021}や、
+SARにおける不連続転移の報告\cite{WangEtAl2015} などを示します。
+
+\section{モデルと実装}
+\subsection{ネットワーク}
+\begin{itemize}[leftmargin=2em]
+  \item 構成モデル（\texttt{Config}）：$P(k)\propto k^{-\gamma}$，$k_{\min}$，$\langle k\rangle$ など
+  \item ER/BA/RR も利用可（必要に応じて切替）
+\end{itemize}
+
+\subsection{SARダイナミクス}
+非冗長情報メモリ・閾値$T$を採用。伝播率は
+\begin{equation}
+\lambda\,k_u^{\alpha}k_v^{\beta}\ (\beta=0~\text{例})
+\end{equation}
+の形で次数依存性を与えます。
+
+\section{設定と実行}
+\subsection{代表設定（例）}
+\begin{table}[htbp]
+  \centering
+  \caption{代表的な実験設定（編集して使用）}
+  \begin{tabular}{@{}ll@{}}\toprule
+    項目 & 値（例） \\ \midrule
+    ネットワーク & Config：$\gamma=2.3$, $k_{\min}=5$, $\langle k\rangle=10$ \\
+    ノード数 & $50{,}000$ \\
+    閾値 $T$ & $1$，活動家割合 $p=0.0$ \\
+    初期感染数 & $k_0=1$ \\
+    回復率 & $\gamma=1.0$，観測時間 $t_{\max}=200$ \\
+    掃引 & $\lambda\in[0,3],\ \Delta\lambda=0.01$，$\alpha\in\{-2.5,-2.0,-1.0,-0.5,0.0\}$ \\
+    出力 & 終値（\texttt{isFinal=true}） \\
+  \bottomrule\end{tabular}
+\end{table}
+
+\subsection{コマンド例}
+\begin{verbatim}
+./run-fastsar.sh
+# もしくは
+./gradlew :app:runFastSAR
+\end{verbatim}
+出力は \verb|out/fastsar/.../results_{00..}.csv| に追記されます。
+
+\section{結果}
+\subsection{\texorpdfstring{$R(\infty)$}{R(infty)} vs \texorpdfstring{$\lambda$}{lambda}}
+\begin{figure}[htbp]
+  \centering
+  % \includegraphics[width=0.85\linewidth]{fig/Rinf_vs_lambda_example.pdf}
+  \caption{最終規模と伝播率の関係（例）。}
+\end{figure}
+
+\subsection{表: 転移点推定とジャンプ量}
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{@{}lllll@{}}\toprule
+    ネットワーク & $\gamma$ & $\alpha$ & 推定 $\lambda_c$ & $\Delta R$ \\ \midrule
+    SF & 2.5 & -0.5 & 0.32 & 0.41 \\
+    ER & --  & 0.0  & 0.58 & 0.35 \\
+  \bottomrule\end{tabular}
+  \caption{転移点推定の例（数値はダミー）。}
+\end{table}
+
+\section{考察と今後の課題}
+所見の要約，感度分析の計画，理論的検討の方向性など。
+
+\printbibliography
+
+\end{document}

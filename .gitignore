@@ -4,8 +4,41 @@
 # Ignore Gradle build output directory
 build
 
+# macOS system files
+.DS_Store
+**/.DS_Store
+
 # files for local test
 test-notebooks
 
 # simulation results
 out/
+
+app/src/main/java/sirsim/network/files/*
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.dvi
+*.fdb_latexmk
+*.fls
+*.log
+*.lof
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.xdv
+*.thm
+*.ps
+_minted*
+ 
+# LaTeX: repo-specific ignores under tex/
+tex/**/out/
+tex/**/*.pdf

@@ -1,0 +1,246 @@
+% !TeX program = uplatex
+% !TeX encoding = UTF-8
+% migrated from test.tex
+
+\documentclass[uplatex,dvipdfmx,11pt]{bxjsarticle}
+
+% ====== ページ設定 ======
+% bxjsarticleは内部でgeometryを使用します。版面は\setpagelayoutで指定します。
+% \setpagelayout{margin=25mm} % 必要時のみ有効化（過剰指定の警告回避）
+
+% ====== 数式・記号 ======
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{bm}
+
+% ====== 図表 ======
+% Warning 抑制用（caption が bxjsarticle を未サポートとして警告する件）
+\usepackage{silence}
+\WarningFilter{caption}{Unknown document class}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{siunitx}
+
+% ====== 参照・リンク ======
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{pxjahyper}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+% ====== 箇条書き等 ======
+\usepackage{enumitem}
+
+% ====== Caption の体裁（明示指定）=====
+\captionsetup[figure]{font=small,labelfont=bf,labelsep=space}
+% subfigure のみ使うときに適用（未使用時の "Unused \\captionsetup" 警告を避ける）
+\AtBeginEnvironment{subfigure}{\captionsetup{font=small}}
+
+% ====== BibLaTeX（推奨） ======
+\usepackage[backend=biber,style=numeric,sorting=none]{biblatex}
+% tex/ 直下の references.bib を参照
+\addbibresource{../references.bib}
+
+% ====== 自作コマンド ======
+\newcommand{\SF}{\textsf{SF}}
+\newcommand{\ER}{\textsf{ER}}
+\newcommand{\RR}{\textsf{RR}}
+\newcommand{\Prob}{\mathbb{P}}
+
+\title{スケールフリーネットワーク上における次数依存SARモデルの不連続転移の可能性あるよ}
+\author{氏名（所属）}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本書は計画書の体裁で，(i) スケールフリーネットワークにおける転移点消失（しきい値0）の既知事実，
+(ii) 次数依存パーコレーションにより有限しきい値が復活し得る条件，
+(iii) 非冗長情報メモリを伴うSAR（Susceptible--Adopted--Recovered）モデルでの不連続転移，
+を踏まえ，次数依存SARモデルにより不均一ネットワーク上でも不連続転移が出現する可能性を検証する研究計画を述べる。
+加えて，伝播確率が $\lambda k^\alpha$ に従うSARシミュレーションの予備結果を図表として示す。
+\end{abstract}
+
+\section{背景と問題設定}
+\subsection{スケールフリーネットワークと転移点（しきい値0）}
+通常，スケールフリーネットワーク（次数分布 $P(k)\sim k^{-\gamma}$）上の多くの拡散・感染ダイナミクスでは，
+$\gamma<3$ の場合に疫学的しきい値が 0 となる（転移点が消失する）ことが知られている。
+本研究ではこの「しきい値0」問題を起点とする。
+
+\subsection{次数依存パーコレーションによる有限しきい値の復活}
+次数依存の伝播（例：$\beta_{ij}=\lambda k_i^{\alpha}k_j^{\beta}$）を導入すると，
+次数の影響が均される条件の下でスケールフリーネットワークでも有限の転移点が現れ得る。
+代表的な条件として
+\begin{equation}
+\alpha+\beta < \gamma - 3
+\label{eq:alpha_beta_condition}
+\end{equation}
+が知られている（次数依存パーコレーションの結果）\cite{BaxterTimar2021}。
+
+\subsection{非冗長情報メモリを伴うSARモデルと不連続転移}
+各頂点に閾値を定義し，閾値回数以上の（\underline{異なる隣接点からの}）伝播を受けたときのみ採用状態へ遷移するSARモデルでは，
+伝播確率と最終拡散規模の関係に不連続転移（ジャンプ）が出現し得ることが報告されている\cite{WangEtAl2015}。
+一方で，スケールフリーネットワークではSARの転移点が 0 となり得る点も指摘されている（本研究の出発点）。
+
+\subsection{本研究の着想（仮説）}
+上記を踏まえ，本研究では次の仮説を検証する。
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{仮説：} スケールフリーネットワーク上でも，\textbf{次数依存の伝播}を組み込んだSARモデル（次数依存SAR）では，
+  \textbf{不連続転移が有限の転移点で復活}する条件が存在する。
+\end{itemize}
+
+\section{モデル定義}
+\subsection{ネットワーク}
+対象ネットワーク例（必要に応じて追記）：
+\begin{itemize}[leftmargin=2em]
+  \item Erd\H{o}s--R\'enyi（\ER）ランダムグラフ
+  \item ランダム正則（\RR）
+  \item スケールフリー（\SF）：$P(k)\sim k^{-\gamma}$（構成モデルなど）
+\end{itemize}
+
+\subsection{SARダイナミクス（非冗長情報メモリ）}
+各ノード状態を $S,A,R$ とし，採用ノードは隣接ノードへ情報を送る。
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{非冗長：} 同一エッジで情報は最大1回のみ成功（single-transmission）
+  \item \textbf{閾値：} 各ノードは異なる隣接点からの累積受信回数 $m$ が閾値 $T$ を満たすと採用（Heaviside）
+\end{itemize}
+\begin{equation}
+\pi(m)=
+\begin{cases}
+1 & (m\ge T),\\
+0 & (m<T).
+\end{cases}
+\end{equation}
+
+\subsection{次数依存の伝播確率}
+本研究で導入する次数依存性（予備実装に合わせる）：
+\begin{equation}
+p_{\text{trans}}(u\to v) \propto \lambda \, k_u^{\alpha}
+\label{eq:lambda_k_alpha}
+\end{equation}
+ここで $k_u$ は送信側ノード $u$ の次数，$\lambda$ は基準伝播率，$\alpha$ は次数依存指数。
+（必要なら受信側依存 $\beta$ も追加し，$\lambda k_u^\alpha k_v^\beta$ に拡張。）
+
+\section{研究目的と検証項目}
+\subsection{目的}
+\begin{enumerate}[leftmargin=2em]
+  \item 次数依存SARにおいて，\textbf{転移点（有限しきい値）が出現する条件}を数値的に特定する。
+  \item 最終拡散規模 $R(\infty)$ の $\lambda$ 依存性が \textbf{連続/不連続}どちらになるかを分類する。
+  \item ネットワーク不均一性（$\gamma$，$k_{\max}$，$N$，相関）と $\alpha$ の相互作用を整理する。
+\end{enumerate}
+
+\subsection{観測量}
+\begin{itemize}[leftmargin=2em]
+  \item 最終採用率（拡散規模）：$R(\infty)$
+  \item （任意）採用率のジャンプ量：$\Delta R = R(\infty;\lambda_c^+)-R(\infty;\lambda_c^-)$
+  \item （任意）反復回数・ピーク（NOI等）：不連続点の推定補助
+\end{itemize}
+
+\section{シミュレーション設計（本実装に対応）}
+\subsection{現行設定（FastSARの既定値）}
+\begin{table}[htbp]
+  \centering
+  \caption{シミュレーション設定（実装のデフォルト）}
+  \label{tab:params}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    項目 & 値 \\ \midrule
+    ネットワーク & 構成モデル（\texttt{Config}）：パワー則 $\gamma=2.3$, $k_{\min}=5$, $\langle k\rangle=10$ \\
+    ノード数 $N$ & $50{,}000$ \\
+    閾値 $T$ & $1$（活動家以外も同一） \\
+    活動家割合 $p$ & $0.0$（$pN$ 個の閾値を $1$ にしてランダム配置） \\
+    初期感染数 $k_0$ & $1$ \\
+    回復率 $\gamma$ & $1.0$（連続時間指数分布） \\
+    伝播率 $\lambda$ & $0.00$ 〜 $3.00$（刻み $0.01$） \\
+    次数指数 $\alpha$ & $\{-2.5,-2.0,-1.0,-0.5,0.0\}$ \\
+    受信側指数 $\beta$ & $0.0$ \\
+    追跡時間 $t_{\max}$ & $200$ \\
+    反復数（各バッチ） & $50$（バッチ数 $16$ 並列） \\
+    出力 & 最終時点のみ（時系列でなく終値） \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{伝播確率と閾値の実装}
+送信側次数 $k_u$ と受信側次数 $k_v$ に対し
+\begin{equation}
+p_{\text{trans}}(u\to v) \propto \lambda\, k_u^{\alpha} k_v^{\beta}, \quad (\beta=0\text{ 既定})
+\end{equation}
+各ノードの閾値は既定で $T{=}1$、活動家割合 $p$ 分だけランダムに $T{=}1$ ノードを割当てています（$p{=}0$ では一様に $T{=}1$）。
+
+\subsection{不連続転移の判定手順}
+\begin{enumerate}[leftmargin=2em]
+  \item $\lambda$ を掃引し，各点で $R(\infty)$ を推定
+  \item $R(\infty)$ の急変・ヒステリシス（可能なら上り/下り掃引）を確認
+  \item （補助）反復回数ピーク等で臨界近傍を推定
+\end{enumerate}
+
+\subsection{出力フォーマットと保存先}
+既定では\textbf{終値のみ}をCSV追記します（列: \texttt{itr, alpha, beta, lambda, time, A, R}）。
+保存先はネットワーク・パラメータ別のディレクトリ配下で、\texttt{results\_00.csv}, \texttt{results\_01.csv} ... のようにバッチ番号で分割されます：
+\begin{quote}\small
+% \url{out/fastsar/config/gamma=2.30/kmin=5/threshold=1/p=0.00/N=50000/results_00..15.csv}
+\end{quote}
+時系列が必要な場合は実装の\texttt{isFinal}を\texttt{false}にし、\texttt{writeTimeSeriesCsv}を出力します。
+
+\subsection{実行コマンド（Gradle）}
+macOS のスリープ抑止付き: \texttt{./run-fastsar.sh}。直接タスクを呼ぶ場合は：\ \texttt{./gradlew :app:runFastSAR}。
+
+\section{予備結果（図表の挿入枠）}
+ここに，すでに実施済みの「$\lambda k^\alpha$ のSARシミュレーション結果」を入れます。
+図ファイルは例えば \texttt{fig/} ディレクトリに置き，PDF/PNG を想定します。
+
+\subsection{代表例：\texorpdfstring{$R(\infty)$}{R(infty)} vs \texorpdfstring{$\lambda$}{lambda}（ネットワーク別）}
+\begin{figure}[htbp]
+  \centering
+  % 例：fig/Rinf_vs_lambda_SF_gamma25_alpha-05.pdf など
+  % \includegraphics[width=0.85\linewidth]{fig/Rinf_vs_lambda_example.pdf}
+  \caption{最終拡散規模 $R(\infty)$ と伝播率 $\lambda$ の関係（例）。凡例に $\gamma, T, \rho_0, \alpha$ を明記する。}
+  \label{fig:Rinf_lambda}
+\end{figure}
+
+\subsection{位相図：\texorpdfstring{$(\alpha,\lambda)$}{(alpha, lambda)} 平面}
+\begin{figure}[htbp]
+  \centering
+  % \includegraphics[width=0.85\linewidth]{fig/phasediagram_alpha_lambda.pdf}
+  \caption{$(\alpha,\lambda)$ 平面での $R(\infty)$（色）または不連続/連続の分類（例）。}
+  \label{fig:phase_alpha_lambda}
+\end{figure}
+
+\subsection{表：転移点推定値とジャンプ量}
+\begin{table}[htbp]
+  \centering
+  \caption{転移点推定（例）}
+  \label{tab:critical}
+  \begin{tabular}{@{}lllll@{}}
+    \toprule
+    ネットワーク & $\gamma$ & $\alpha$ & 推定 $\lambda_c$ & ジャンプ $\Delta R$ \\ \midrule
+    SF & 2.5 & -0.5 & 0.32 & 0.41 \\
+    SF & 2.5 & 0.0  & 0.00 & 0.00 \\
+    ER & --  & 0.0  & 0.58 & 0.35 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{考察（書くべき論点のテンプレ）}
+\begin{itemize}[leftmargin=2em]
+  \item $\alpha$ により「ハブの寄与」が抑制/強調され，準臨界個体（$T-1$ 受信）集団の形成がどう変わるか。
+  \item 条件 \cref{eq:alpha_beta_condition}（次数依存パーコレーション）と，本研究の次数依存SARの臨界条件の対応。
+  \item 不連続転移が復活する場合のメカニズム仮説（サドルノード分岐／カスプ的挙動の可能性など）。
+  \item $\gamma$（不均一性）・$N$・$k_{\max}$ の有限サイズ効果。
+\end{itemize}
+
+\section{今後の計画}
+\begin{enumerate}[leftmargin=2em]
+  \item 追加実験：$\alpha$ と $T,\rho_0$ の系統掃引（位相図作成）
+  \item 受信側依存（$\beta$）の導入：$\lambda k_u^\alpha k_v^\beta$
+  \item 理論側：エッジ基盤理論（EBCM）を次数依存伝播へ拡張する可能性の検討
+  \item 再現性：乱数種・反復回数・ネットワーク生成方法の整理
+\end{enumerate}
+
+\section*{謝辞（任意）}
+（任意）
+
+\printbibliography
+
+\end{document}
