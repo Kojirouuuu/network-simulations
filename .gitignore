@@ -4,6 +4,10 @@
 # Ignore Gradle build output directory
 build
 
+# macOS system files
+.DS_Store
+**/.DS_Store
+
 # files for local test
 test-notebooks
 
