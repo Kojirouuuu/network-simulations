@@ -44,7 +44,8 @@ public final class FastSARSimulator {
     private final ArrayList<Integer> R = new ArrayList<>();
 
     private int Scount, Acount, Rcount;
-
+    private double initialAdoptedTime, finalAdoptedTime;
+    
     public FastSARSimulator(Graph g, double lambda, double gamma, double tMax, int[] thresholdList, double alpha, double beta, long seed) {
         if (g == null) throw new IllegalArgumentException("Graph is null");
         if (lambda < 0 || gamma < 0) throw new IllegalArgumentException("lambda and gamma must be non-negative");
@@ -73,6 +74,8 @@ public final class FastSARSimulator {
 
     public SarResult run(int[] initialInfecteds) {
         final int n = g.n;
+        initialAdoptedTime = 0;
+        finalAdoptedTime = 0;
         Scount = n;
         Acount = 0;
         Rcount = 0;
@@ -149,7 +152,7 @@ public final class FastSARSimulator {
             }
         }
 
-        return new SarResult(n, times, S, A, R, tInfect, tRecover);
+        return new SarResult(n, times, S, A, R, initialAdoptedTime, finalAdoptedTime, tInfect, tRecover);
     }
 
     private void processTransmit(int u, double t, PriorityQueue<Event> Q, SeqGen seqGen) {
@@ -157,6 +160,11 @@ public final class FastSARSimulator {
         if (infectedCount[u] >= thresholdList[u]) {
             Scount--; Acount++;
             record(t);
+
+            if (initialAdoptedTime == 0) {
+                initialAdoptedTime = t;
+            }
+            finalAdoptedTime = t;
 
             status[u] = Status.A;
             tInfect[u] = t;

@@ -42,7 +42,8 @@ public class FastSAR {
         // タスク数計算
         final int lambdaCount = config.lambdaList.length;
         final int alphaCount = config.alphaList.length;
-        final long totalTasks = (long) config.itrs * alphaCount * lambdaCount;
+        final int rho0Count = config.rho0List.length;
+        final long totalTasks = (long) config.itrs * alphaCount * lambdaCount * rho0Count;
         logger.info("Total tasks: %d", totalTasks);
         
         int parallelism = Runtime.getRuntime().availableProcessors();
@@ -140,29 +141,33 @@ public class FastSAR {
         for (int itr = 0; itr < config.itrs; itr++) {
             progressItr[batchIndex] = itr;
             
-            for (int ai = 0; ai < alphaCount; ai++) {
-                double alpha = config.alphaList[ai];
+            for (int ri = 0; ri < config.rho0List.length; ri++) {
+                double rho0 = config.rho0List[ri];
                 
-                for (int li = 0; li < lambdaCount; li++) {
-                    double lambda = config.lambdaList[li];
-
-                    // パラメータ設定
-                    int[] thresholdList = new int[config.N];
-                    Arrays.fill(thresholdList, config.threshold);
-                    int numActivist = (int) (config.N * config.p);
-                    for (int i = 0; i < numActivist; i++) {
-                        thresholdList[i] = 1;
-                    }
-                    thresholdList = Array.shuffle(thresholdList, 
-                        RNG_BASE_SEED + (long) batchIndex * 1_000 + itr);
+                for (int ai = 0; ai < alphaCount; ai++) {
+                    double alpha = config.alphaList[ai];
                     
-                    // シミュレーション実行
-                    runSimulation(g, config, lambda, alpha, thresholdList, 
-                                 batchIndex, itr, resultsPath);
+                    for (int li = 0; li < lambdaCount; li++) {
+                        double lambda = config.lambdaList[li];
+
+                        // パラメータ設定
+                        int[] thresholdList = new int[config.N];
+                        Arrays.fill(thresholdList, config.threshold);
+                        int numActivist = (int) (config.N * config.p);
+                        for (int i = 0; i < numActivist; i++) {
+                            thresholdList[i] = 1;
+                        }
+                        thresholdList = Array.shuffle(thresholdList, 
+                            RNG_BASE_SEED + (long) batchIndex * 1_000 + itr);
+                        
+                        // シミュレーション実行
+                        runSimulation(g, config, lambda, alpha, rho0, thresholdList, 
+                                    batchIndex, itr, resultsPath);
+                    }
+                    
+                    // 進捗ログの更新
+                    updateProgressLog(done, totalTasks);
                 }
-                
-                // 進捗ログの更新
-                updateProgressLog(done, totalTasks);
             }
         }
         
@@ -193,13 +198,16 @@ public class FastSAR {
      * 1回のシミュレーションを実行
      */
     private static void runSimulation(Graph g, SimulationConfig config, 
-                                     double lambda, double alpha, int[] thresholdList,
+                                     double lambda, double alpha, double rho0, int[] thresholdList,
                                      int batchIndex, int itr, Path resultsPath) {
         // 乱数生成器とシードの準備
         SplittableRandom rng = new SplittableRandom(
             RNG_BASE_SEED + (long) batchIndex * 10_000 + itr
         );
-        int[] init = sampleUnique(rng, g.n, config.k0);
+
+        int initialInfectedNum = (int) (g.n * rho0);
+        
+        int[] init = sampleUnique(rng, g.n, initialInfectedNum);
         long simSeed = SIM_BASE_SEED + (long) batchIndex * config.itrs + itr;
         
         // シミュレーション実行
@@ -211,13 +219,13 @@ public class FastSAR {
         // CSV出力
         try {
             if (config.isFinal) {
-                res.writeFinalStateCsv(resultsPath, itr, alpha, config.beta, lambda, true);
+                res.writeFinalStateCsv(resultsPath, itr, alpha, config.beta, lambda, rho0, true);
             } else {
-                res.writeTimeSeriesCsv(resultsPath, itr, alpha, config.beta, lambda, true);
+                res.writeTimeSeriesCsv(resultsPath, itr, alpha, config.beta, lambda, rho0, true);
             }
         } catch (IOException e) {
-            logger.error("CSV output error (batch %d, iteration %d, alpha %.1f, lambda %.2f): %s", 
-                        batchIndex, itr, alpha, lambda, e.getMessage());
+            logger.error("CSV output error (batch %d, iteration %d, alpha %.1f, lambda %.2f, rho0 %.2f): %s", 
+                        batchIndex, itr, alpha, lambda, rho0, e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -240,21 +248,24 @@ public class FastSAR {
         final String networkType = "Config"; // "ER", "BA", "Config", "RR"
         final int N = 50_000;
         final int kAve = 10;
-        final double powerLawGamma = 2.3;
+        final double powerLawGamma = 3.8;
         final int kMin = 5;
         final boolean isFinal = true;
         final int batchSize = 16;
-        final int itrs = 50;
-        final int k0 = 1;
+        final int itrs = 20;
         final double gamma = 1.0;
         final double tMax = 200.0;
         final double beta = 0.0;
         final double lambdaMin = 0.0;
-        final double lambdaMax = 3.0;
-        final double lambdaStep = 0.01;
+        final double lambdaMax = 20.0;
+        final double lambdaStep = 0.5;
         final double[] lambdaList = Array.arange(lambdaMin, lambdaMax, lambdaStep);
-        final double[] alphaList = { -2.5, -2.0, -1.0, -0.5, 0.0 };
-        final int threshold = 1;
+        final double rho0Min = 0;
+        final double rho0Max = 0.2;
+        final double rho0Step = 0.005;
+        final double[] rho0List = Array.arange(rho0Min, rho0Max, rho0Step);
+        final double[] alphaList = { 0.0, -0.5 };
+        final int threshold = 3;
         final double p = 0.0; // fraction of activists
     }
 

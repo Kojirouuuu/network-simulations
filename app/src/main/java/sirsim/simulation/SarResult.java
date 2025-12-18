@@ -15,13 +15,16 @@ public final class SarResult {
     public final List<Integer> S;
     public final List<Integer> A;
     public final List<Integer> R;
+    public final double initialAdoptedTime;
+    public final double finalAdoptedTime;
     public final double[] tInfect;   // 各ノードの感染成立時刻（未感染はNaN）
     public final double[] tRecover;  // 各ノードの回復成立時刻（未回復はNaN）
 
     SarResult(int n,
               List<Double> times, List<Integer> S, List<Integer> A, List<Integer> R,
-              double[] tInfect, double[] tRecover) {
+              double initialAdoptedTime, double finalAdoptedTime, double[] tInfect, double[] tRecover) {
         this.n = n; this.times = times; this.S = S; this.A = A; this.R = R;
+        this.initialAdoptedTime = initialAdoptedTime; this.finalAdoptedTime = finalAdoptedTime;
         this.tInfect = tInfect; this.tRecover = tRecover;
     }
 
@@ -107,7 +110,7 @@ public final class SarResult {
      * 集計時系列CSV（itr,alpha,beta,lambda,time,A,R）を追記モードで出力。
      * 解析時にパラメータも横に展開したいケース向け。
      */
-    public void writeTimeSeriesCsv(Path path, int itr, double alpha, double beta, double lambda, boolean append) throws IOException {
+    public void writeTimeSeriesCsv(Path path, int itr, double alpha, double beta, double lambda, double rho0, boolean append) throws IOException {
         if (!append) path = sirsim.utils.PathsEx.resolveIndexed(path);
         Files.createDirectories(path.getParent());
         boolean writeHeader = true;
@@ -121,11 +124,11 @@ public final class SarResult {
                 append ? java.nio.file.StandardOpenOption.APPEND : java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
              PrintWriter out = new PrintWriter(bw)) {
             if (writeHeader) {
-                out.println("itr,alpha,beta,lambda,time,A,R");
+                out.println("itr,alpha,beta,lambda,rho0,time,A,R");
             }
             for (int i = 0; i < times.size(); i++) {
-                out.printf(Locale.ROOT, "%d,%.9f,%.9f,%.9f,%.9f,%d,%d%n",
-                        itr, alpha, beta, lambda, times.get(i), A.get(i), R.get(i));
+                out.printf(Locale.ROOT, "%d,%.9f,%.9f,%.9f,%.9f,%.9f,%d,%d%n",
+                        itr, alpha, beta, lambda, rho0, times.get(i), A.get(i), R.get(i));
             }
         }
     }
@@ -134,7 +137,7 @@ public final class SarResult {
      * 集計時系列CSV（itr,alpha,beta,lambda,time,I,R）を追記モードで出力。
      * 解析時にパラメータも横に展開したいケース向け。
      */
-    public void writeFinalStateCsv(Path path, int itr, double alpha, double beta, double lambda, boolean append) throws IOException {
+    public void writeFinalStateCsv(Path path, int itr, double alpha, double beta, double lambda, double rho0, boolean append) throws IOException {
         if (!append) path = sirsim.utils.PathsEx.resolveIndexed(path);
         Files.createDirectories(path.getParent());
         boolean writeHeader = true;
@@ -148,10 +151,10 @@ public final class SarResult {
                 append ? java.nio.file.StandardOpenOption.APPEND : java.nio.file.StandardOpenOption.TRUNCATE_EXISTING);
              PrintWriter out = new PrintWriter(bw)) {
             if (writeHeader) {
-                out.println("itr,alpha,beta,lambda,time,A,R");
+                out.println("itr,alpha,beta,lambda,rho0,time,initialAdoptedTime,finalAdoptedTime,A,R");
             }
-            out.printf(Locale.ROOT, "%d,%.9f,%.9f,%.9f,%.9f,%d,%d%n",
-                        itr, alpha, beta, lambda, times.get(times.size() - 1), A.get(A.size() - 1), R.get(R.size() - 1));
+            out.printf(Locale.ROOT, "%d,%.9f,%.9f,%.9f,%.9f,%.9f,%.9f,%.9f,%d,%d%n",
+                        itr, alpha, beta, lambda, rho0, times.get(times.size() - 1), initialAdoptedTime, finalAdoptedTime, A.get(A.size() - 1), R.get(R.size() - 1));
         }
     }
 }

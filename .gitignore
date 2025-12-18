@@ -8,6 +8,13 @@ build
 .DS_Store
 **/.DS_Store
 
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
 # files for local test
 test-notebooks
 
