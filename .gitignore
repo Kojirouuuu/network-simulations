@@ -15,8 +15,10 @@ __pycache__/
 *.so
 .Python
 
+test.ipynb
 # files for local test
 test-notebooks
+
 
 # simulation results
 out/

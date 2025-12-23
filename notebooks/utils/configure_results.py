@@ -188,8 +188,6 @@ def configure_result(output_path: str, batch_size: int) -> Dict[str, np.ndarray]
     print(f"len(lamb_values): {len(lamb_values)}")
     print(f"len(alpha_values): {len(alpha_values)}")
     print(f"len(rho0_values): {len(rho0_values)}")
-    print("=" * 20)
-    print("")
     
     return {
         "R_infty": R_infty,

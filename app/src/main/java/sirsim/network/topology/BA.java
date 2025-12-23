@@ -16,86 +16,69 @@ public class BA {
         if (N <= 0) throw new IllegalArgumentException("ノード数Nは正の整数である必要があります");
         if (m0 <= 0 || m0 > N) throw new IllegalArgumentException("初期完全グラフの頂点数m0は1〜Nの範囲で指定してください");
         if (m < 0 || m > m0) throw new IllegalArgumentException("各新規ノードが接続するエッジ数mは0以上m0以下である必要があります");
-
+    
+        // BAとして扱うなら推奨制約（必要なら有効化）
+        // if (m == 0) throw new IllegalArgumentException("BAモデルでは通常 m >= 1 を想定します");
+        // if (m0 < 2 && m > 0) throw new IllegalArgumentException("m>0 の場合、通常 m0>=2 を推奨します");
+    
         Random random = new Random(seed);
-
-        int[] deg = new int[N];
-        List<Integer> srcList = new ArrayList<>();
-        List<Integer> dstList = new ArrayList<>();
-
-        // 初期完全グラフのエッジを設定
+    
+        // 総エッジ数（undirected）
+        long totalEdgesLong = (long) m0 * (m0 - 1) / 2 + (long) (N - m0) * m;
+        if (totalEdgesLong > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("エッジ数が大きすぎます: " + totalEdgesLong);
+        }
+        int totalEdges = (int) totalEdgesLong;
+    
+        // stubList は 2*総エッジ数（両端点）
+        int[] stubList = new int[2 * totalEdges];
+        int[] s = new int[totalEdges];
+        int[] d = new int[totalEdges];
+    
+        int e = 0;       // 現在のエッジ本数
+        int stubLen = 0; // 現在のスタブ数 (=2*e)
+    
+        // 初期完全グラフ
         for (int i = 0; i < m0; i++) {
             for (int j = i + 1; j < m0; j++) {
-                srcList.add(i);
-                dstList.add(j);
-                deg[i]++;
-                deg[j]++;
+                s[e] = i;
+                d[e] = j;
+                stubList[stubLen++] = i;
+                stubList[stubLen++] = j;
+                e++;
             }
         }
-
-        // 新規ノードの追加
+    
+        // 新規ノード追加
         for (int i = m0; i < N; i++) {
-            // 既存のノードのリストを作成（重複を許可）
-            List<Integer> existingNodes = new ArrayList<>();
-            for (int j = 0; j < i; j++) {
-                for (int k = 0; k < deg[j]; k++) {
-                    existingNodes.add(j);
+            if (m == 0) continue;
+    
+            if (stubLen == 0) {
+                // m>0 なのにスタブが無い（初期辺ゼロ等）。仕様としてどう扱うか決める。
+                // ここでは 0 に繋ぐ等のフォールバックにせず、明示的に例外にするのが安全。
+                throw new IllegalStateException("優先的選択のためのスタブが存在しません（初期辺が0本です）");
+            }
+    
+            Set<Integer> connected = new HashSet<>(Math.max(16, m * 2));
+            while (connected.size() < m) {
+                int target = stubList[random.nextInt(stubLen)]; // 有効範囲のみ
+                if (target != i) { // 念のため（通常 i は stubList にいない）
+                    connected.add(target);
                 }
             }
-            
-            // 既に接続したノードを記録（重複接続を避けるため）
-            Set<Integer> connected = new HashSet<>();
-            
-            // m個のエッジを接続
-            for (int j = 0; j < m; j++) {
-                if (existingNodes.isEmpty()) {
-                    break;
-                }
-                
-                // 優先度付き選択（次数に比例）
-                // 既に接続したノードはスキップ
-                int target = -1;
-                int attempts = 0;
-                while (attempts < existingNodes.size() * 10) { // 無限ループ防止
-                    int r = random.nextInt(existingNodes.size());
-                    int candidate = existingNodes.get(r);
-                    if (!connected.contains(candidate)) {
-                        target = candidate;
-                        break;
-                    }
-                    attempts++;
-                }
-                
-                if (target == -1) {
-                    // 接続可能なノードが見つからない場合は終了
-                    break;
-                }
-                
-                // エッジを追加
-                final int finalTarget = target; // final変数として宣言
-                srcList.add(i);
-                dstList.add(finalTarget);
-                deg[i]++;
-                deg[finalTarget]++;
-                connected.add(finalTarget);
-                
-                // 選択されたノードをリストからすべて削除（重複接続を避けるため）
-                existingNodes.removeIf(node -> node == finalTarget);
+    
+            for (int target : connected) {
+                s[e] = i;
+                d[e] = target;
+                stubList[stubLen++] = i;
+                stubList[stubLen++] = target;
+                e++;
             }
         }
-
-        // 配列に変換
-        int numEdges = srcList.size();
-        int[] s = new int[numEdges];
-        int[] d = new int[numEdges];
-        for (int i = 0; i < numEdges; i++) {
-            s[i] = srcList.get(i);
-            d[i] = dstList.get(i);
-        }
-
-
+    
         return Graph.fromUndirectedEdgeList("BA", N, s, d);
     }
+    
 
     /**
      * シード省略版

@@ -26,9 +26,8 @@ public class FastSAR {
     private static final Logger logger = new Logger(FastSAR.class);
     
     // 進捗表示設定
-    private static final int PROGRESS_BAR_LENGTH = 20;
+    private static final int PROGRESS_BAR_LENGTH = 100;
     private static final int PROGRESS_UPDATE_INTERVAL_MS = 100;
-    private static final long PROGRESS_LOG_INTERVAL = 10_000;
     
     // 乱数シードのベース値
     private static final long RNG_BASE_SEED = 7L;
@@ -43,8 +42,9 @@ public class FastSAR {
         final int lambdaCount = config.lambdaList.length;
         final int alphaCount = config.alphaList.length;
         final int rho0Count = config.rho0List.length;
-        final long totalTasks = (long) config.itrs * alphaCount * lambdaCount * rho0Count;
+        final long totalTasks = (long) config.batchSize * config.itrs * alphaCount * lambdaCount * rho0Count;
         logger.info("Total tasks: %d", totalTasks);
+        logger.info("%s: N=%d, itrs=%d", config.networkType, config.N, config.itrs);
         
         int parallelism = Runtime.getRuntime().availableProcessors();
         logger.info("Parallelism: %d (available processors)", parallelism);
@@ -53,68 +53,26 @@ public class FastSAR {
         int[] progressItr = new int[config.batchSize];
         AtomicLong done = new AtomicLong(0);
         AtomicBoolean running = new AtomicBoolean(true);
-        
-        // 進捗表示スレッドの開始
-        Thread renderer = createProgressRenderer(progressItr, config.batchSize, config.itrs, running);
+
+        // 進捗表示スレッド開始（全体1行）
+        Thread renderer = createTotalProgressRenderer(done, totalTasks, running);
         renderer.start();
-        
-        // バッチ処理の実行
+
         try (ForkJoinPool pool = new ForkJoinPool(parallelism)) {
-            Future<?> future = pool.submit(() -> 
-                IntStream.range(0, config.batchSize).parallel().forEach(batchIndex -> 
-                    processBatch(batchIndex, config, 
-                                progressItr, done, totalTasks)
+            Future<?> future = pool.submit(() ->
+                IntStream.range(0, config.batchSize).parallel().forEach(batchIndex ->
+                    processBatch(batchIndex, config, progressItr, done, totalTasks)
                 )
             );
-            
+
             future.get();
+        } finally {
             running.set(false);
             renderer.join();
         }
-        
+
         logger.info("All tasks completed");
-    }
-    
-    /**
-     * 進捗表示スレッドを作成
-     */
-    private static Thread createProgressRenderer(int[] progressItr, int batchSize, int itrs, AtomicBoolean running) {
-        return new Thread(() -> {
-            // 進捗表示用の空行を確保
-            System.out.println();
-            for (int i = 0; i < batchSize; i++) {
-                System.out.println();
-            }
-            
-            while (running.get()) {
-                synchronized (System.out) {
-                    // カーソルをbatchSize行だけ上に戻す（\033はESC）
-                    System.out.print("\033[" + batchSize + "A");
-                    
-                    // 各バッチの進捗を表示
-                    for (int b = 0; b < batchSize; b++) {
-                        renderProgressBar(b, progressItr[b], itrs);
-                    }
-                    System.out.flush();
-                }
-                
-                try {
-                    Thread.sleep(PROGRESS_UPDATE_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    running.set(false);
-                }
-            }
-        });
-    }
-    
-    /**
-     * 進捗バーを1行表示
-     */
-    private static void renderProgressBar(int batchIndex, int itrNow, int itrs) {
-        int percent = itrNow * 100 / itrs;
-        int filled = itrNow * PROGRESS_BAR_LENGTH / itrs;
-        String bar = "#".repeat(filled) + " ".repeat(PROGRESS_BAR_LENGTH - filled);
-        System.out.printf("batch=%02d [%s] %3d%%%n", batchIndex, bar, percent);
+
     }
     
     /**
@@ -163,10 +121,9 @@ public class FastSAR {
                         // シミュレーション実行
                         runSimulation(g, config, lambda, alpha, rho0, thresholdList, 
                                     batchIndex, itr, resultsPath);
+
+                        done.incrementAndGet();
                     }
-                    
-                    // 進捗ログの更新
-                    updateProgressLog(done, totalTasks);
                 }
             }
         }
@@ -212,7 +169,7 @@ public class FastSAR {
         
         // シミュレーション実行
         SarResult res = FastSARSimulator.simulate(
-            g, lambda, config.gamma, config.tMax, thresholdList, 
+            g, lambda, config.mu, config.tMax, thresholdList, 
             alpha, config.beta, init, simSeed
         );
         
@@ -230,41 +187,74 @@ public class FastSAR {
         }
     }
     
-    /**
-     * 進捗ログを更新
-     */
-    private static void updateProgressLog(AtomicLong done, long totalTasks) {
-        long d = done.incrementAndGet();
-        if (d % PROGRESS_LOG_INTERVAL == 0 || d == totalTasks) {
-            double pct = 100.0 * d / totalTasks;
-            logger.info("Progress: %d/%d (%.1f%%)", d, totalTasks, pct);
-        }
+    private static Thread createTotalProgressRenderer(AtomicLong done, long totalTasks, AtomicBoolean running) {
+        return new Thread(() -> {
+            long lastPrintedDone = 0;
+
+            while (running.get()) {
+                long d = done.get();
+                if (d != lastPrintedDone) {
+                    synchronized (System.out) {
+                        renderTotalProgressBar(d, totalTasks);
+                    }
+                    lastPrintedDone = d;
+                }
+
+                if (d >= totalTasks) break;
+
+                try {
+                    Thread.sleep(PROGRESS_UPDATE_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    running.set(false);
+                    break;
+                }
+            }
+
+            synchronized (System.out) {
+                renderTotalProgressBar(totalTasks, totalTasks);
+                System.out.println();
+            }
+        }, "progress-renderer");
+    }
+
+    private static void renderTotalProgressBar(long done, long total) {
+        int filled = (total == 0) ? PROGRESS_BAR_LENGTH
+                : (int) Math.min(PROGRESS_BAR_LENGTH, (done * PROGRESS_BAR_LENGTH) / total);
+    
+        int percent = (total == 0) ? 100 : (int) Math.min(100, (done * 100) / total);
+    
+        String bar = "#".repeat(filled) + "-".repeat(PROGRESS_BAR_LENGTH - filled);
+    
+        // \r で同じ行を上書き
+        System.out.printf("\rProgress [%s] %3d%% (%d/%d)", bar, percent, done, total);
+        System.out.flush();
     }
     
     /**
      * シミュレーション設定を保持する内部クラス
      */
     private static class SimulationConfig {
-        final String networkType = "Config"; // "ER", "BA", "Config", "RR"
-        final int N = 50_000;
+        final String networkType = "ER"; // "ER", "BA", "Config", "RR"
+        final int N = 100_000;
         final int kAve = 10;
-        final double powerLawGamma = 3.8;
+        final double powerLawGamma = 2.4;
         final int kMin = 5;
         final boolean isFinal = true;
         final int batchSize = 16;
         final int itrs = 20;
-        final double gamma = 1.0;
+        final double mu = 1.0;
         final double tMax = 200.0;
         final double beta = 0.0;
         final double lambdaMin = 0.0;
-        final double lambdaMax = 20.0;
-        final double lambdaStep = 0.5;
+        final double lambdaMax = 2.0;
+        final double lambdaStep = 0.02;
         final double[] lambdaList = Array.arange(lambdaMin, lambdaMax, lambdaStep);
         final double rho0Min = 0;
         final double rho0Max = 0.2;
-        final double rho0Step = 0.005;
+        final double rho0Step = 0.002;
         final double[] rho0List = Array.arange(rho0Min, rho0Max, rho0Step);
-        final double[] alphaList = { 0.0, -0.5 };
+        // final double[] rho0List = { 0.05, 0.1 };
+        final double[] alphaList = { 0.0 };
         final int threshold = 3;
         final double p = 0.0; // fraction of activists
     }
